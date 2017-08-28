@@ -35,6 +35,8 @@
 Reverbtron::Reverbtron (int DS, int uq, int dq, double sample_rate, uint32_t intermediate_bufsize)
 {
     PERIOD = intermediate_bufsize;  // correct for rakarrack, may be adjusted by lv2
+    fPERIOD = float(intermediate_bufsize);
+    SAMPLE_RATE = sample_rate;
     nSAMPLE_RATE = (int)sample_rate;
     nfSAMPLE_RATE = sample_rate;
     fSAMPLE_RATE = sample_rate;
@@ -44,36 +46,25 @@ Reverbtron::Reverbtron (int DS, int uq, int dq, double sample_rate, uint32_t int
     Ppanning = 64;
     Plrcross = 100;
     Phidamp = 60;
-    Plevel = 0;
-    Plength = 20;
     Filenum = 0;
+    Plength = 50;
     Llength = 50;
     Puser = 0;
-    Pstretch = 0;
-    Pidelay = 0;
     Psafe = 0;
-    Pes = 0;
-    Prv = 0;
-    Plpf = 20000;
-    Pdiff = 1;
-    Pfade = 1;
-    Pfb = 1;
-    error = 0;
     convlength = 10.0f;  //max reverb time
-
-    level = fb = feedback = levpanl = levpanr = 0.0f;
-    roomsize = 1.0f;
-    lpanning = rpanning = 0.0f;
-    outvolume = 0.5f;
-    
-    adjust(DS, sample_rate);
+    fb = 0.0f;
+    feedback = 0.0f;
+    maxtime = 0.0f;
+    adjust(DS);
 
     hrtf_size = nSAMPLE_RATE/2;
     maxx_size = (int) (nfSAMPLE_RATE * convlength);  //just to get the max memory allocated
     time = (int *) malloc (sizeof (int) * 2000);
     rndtime = (int *) malloc (sizeof (int) * 2000);
+    ftime = (float *) malloc (sizeof (float) * 2000);
     data = (float *) malloc (sizeof (float) * 2000);
     rnddata = (float *) malloc (sizeof (float) * 2000);
+    tdata = (float *) malloc (sizeof (float) * 2000);
     lxn = (float *) malloc (sizeof (float) * (1 + maxx_size));
     hrtf =  (float *) malloc (sizeof (float) * (1 + hrtf_size));
     imax = nSAMPLE_RATE/2;  // 1/2 second available
@@ -81,15 +72,14 @@ Reverbtron::Reverbtron (int DS, int uq, int dq, double sample_rate, uint32_t int
     imctr = 0;
     offset = 0;
     hoffset = 0;
+    data_length=0;
     hlength = 0;
     fstretch = 1.0f;
-    idelay = 1.0f;
-    ffade = diffusion = hidamp = 0.0f;
-    alpha_hidamp = 1.0f - hidamp;
+    idelay = 0.0f;
     decay = f_exp(-1.0f/(0.2f*nfSAMPLE_RATE));  //0.2 seconds
 
     initialize();
-    File = loaddefault();
+    loaddefault();
 
     U_Resample = new Resample(dq);  //Downsample, uses sinc interpolation for bandlimiting to avoid aliasing
     D_Resample = new Resample(uq);
@@ -122,13 +112,7 @@ Reverbtron::cleanup ()
 {
     memset(lxn,0,sizeof(float)*(maxx_size+1));
     memset(hrtf,0,sizeof(float)*(hrtf_size+1));
-    
-    memset(imdelay,0,sizeof(float)*imax);
-    memset(rnddata,0,sizeof(float)* 2000);
-    
-    memset(templ,0,sizeof(float)*PERIOD);
-    memset(tempr,0,sizeof(float)*PERIOD);
-    
+
     feedback = 0.0f;
     oldl = 0.0f;
     lpfl->cleanup ();
@@ -141,7 +125,8 @@ Reverbtron::lv2_update_params(uint32_t period)
     if(period > PERIOD) // only re-initialize if period > intermediate_bufsize of declaration
     {
         PERIOD = period;
-        adjust(DS_state, fSAMPLE_RATE);
+        fPERIOD = float(period);
+        adjust(DS_state);
         clear_initialize();
         initialize();
         setlpf (Plpf);
@@ -150,7 +135,8 @@ Reverbtron::lv2_update_params(uint32_t period)
     else
     {
         PERIOD = period;
-        adjust(DS_state, fSAMPLE_RATE);
+        fPERIOD = float(period);
+        adjust(DS_state);
     }
 }
 
@@ -184,7 +170,7 @@ Reverbtron::clear_initialize()
 void
 Reverbtron::out (float * efxoutl, float * efxoutr)
 {
-    int  i, j, xindex, hindex;
+    int i, j, xindex, hindex;
     float l,lyn, hyn;
     float ldiff,rdiff;
     int length = Llength;
@@ -279,7 +265,11 @@ Reverbtron::out (float * efxoutl, float * efxoutr)
         memcpy(efxoutl, templ,sizeof(float)*PERIOD);
         memcpy(efxoutr, tempr,sizeof(float)*PERIOD);
     }
-}
+
+
+
+
+};
 
 
 /*
@@ -311,79 +301,8 @@ Reverbtron::setpanning (int value)
     levpanr=level*rpanning;
 };
 
-//legacy
 int
 Reverbtron::setfile(int value)
-{
-    RvbFile filedata;
-
-    if(!Puser) {
-        Filenum = value;
-        memset(Filename,0, sizeof(Filename));
-        sprintf(Filename, "%s/%d.rvb",DATADIR,Filenum+1);//DATADIR comes from  config.h (autotools)
-    }
-    filedata = loadfile(Filename);
-    applyfile(filedata);
-    if(error)
-    	return 0;
-    return 1;
-
-    /*
-    if ((fs = fopen (Filename, "r")) == NULL) {
-        File = loaddefault();
-        cleanup();
-        convert_time();
-        return(0);
-    }
-    cleanup();
-    memset(File.tdata, 0, sizeof(float)*2000);
-    memset(File.ftime, 0, sizeof(float)*2000);
-
-
-//Name
-    memset(wbuf,0, sizeof(wbuf));
-    fgets(wbuf,sizeof wbuf,fs);
-
-// Subsample Compresion Skip
-    memset(wbuf,0, sizeof(wbuf));
-    fgets(wbuf,sizeof wbuf,fs);
-    sscanf(wbuf,"%f,%f\n",&compresion,&quality);
-
-//Length
-    memset(wbuf,0,sizeof(wbuf));
-    fgets(wbuf,sizeof wbuf,fs);
-    sscanf(wbuf, "%d\n", &File.data_length);
-    if(File.data_length>2000) File.data_length = 2000;
-//Time Data
-    for(i=0; i<File.data_length; i++) {
-        memset(wbuf,0, sizeof(wbuf));
-        fgets(wbuf,sizeof wbuf,fs);
-        sscanf(wbuf,"%f,%f\n",&File.ftime[i],&File.tdata[i]);
-    }
-
-    fclose(fs);
-
-    File.maxtime = 0.0f;
-    File.maxdata = 0.0f;
-    float averaget = 0.0f;
-    float tempor = 0.0f;
-    for(i=0; i<File.data_length; i++) {
-        if(File.ftime[i] > File.maxtime) File.maxtime = File.ftime[i];
-        if(File.tdata[i] > File.maxdata) File.maxdata = File.tdata[i];  //used to normalize so feedback is more predictable
-        if(i>0) {
-            tempor = File.ftime[i] - File.ftime[i-1];
-            if(tempor>averaget) averaget = tempor;
-        }
-    }
-
-    cleanup();
-    convert_time();
-    return(1);
-    */
-};
-
-RvbFile
-Reverbtron::loadfile(char* filename)
 {
     int i;
     float compresion = 0.0f;
@@ -392,94 +311,72 @@ Reverbtron::loadfile(char* filename)
 
     FILE *fs;
 
-    RvbFile f;
-    error = 0;
-
-    if ((fs = fopen (filename, "r")) == NULL) {
-        f = loaddefault();
-        error = 1;
-        return(f);
+    if(!Puser) {
+        Filenum = value;
+        memset(Filename,0, sizeof(Filename));
+        sprintf(Filename, "%s/%d.rvb",DATADIR,Filenum+1);//DATADIR comes from  config.h (autotools)
     }
-    strcpy(f.Filename,filename);
-    memset(f.tdata, 0, sizeof(float)*2000);
-    memset(f.ftime, 0, sizeof(float)*2000);
+
+    if ((fs = fopen (Filename, "r")) == NULL) {
+        loaddefault();
+        return(0);
+    }
+    cleanup();
+    memset(tdata, 0, sizeof(float)*2000);
+    memset(ftime, 0, sizeof(float)*2000);
 
 
 //Name
     memset(wbuf,0, sizeof(wbuf));
-    if(fgets(wbuf,sizeof wbuf,fs) == NULL) {
-        f = loaddefault();
-        error = 1;
-        return(f);
-    }
+    fgets(wbuf,sizeof wbuf,fs);
 
 // Subsample Compresion Skip
     memset(wbuf,0, sizeof(wbuf));
-    if(fgets(wbuf,sizeof wbuf,fs) == NULL) {
-        f = loaddefault();
-        error = 1;
-        return(f);
-    }
-
+    fgets(wbuf,sizeof wbuf,fs);
     sscanf(wbuf,"%f,%f\n",&compresion,&quality);
 
 //Length
     memset(wbuf,0,sizeof(wbuf));
-    if (fgets(wbuf,sizeof wbuf,fs) == NULL) {
-        f = loaddefault();
-        error = 1;
-        return(f);
-    }
-    sscanf(wbuf, "%d\n", &f.data_length);
-    if(f.data_length>2000) f.data_length = 2000;
+    fgets(wbuf,sizeof wbuf,fs);
+    sscanf(wbuf, "%d\n", &data_length);
+    if(data_length>2000) data_length = 2000;
 //Time Data
-    for(i=0; i<f.data_length; i++) {
+    for(i=0; i<data_length; i++) {
         memset(wbuf,0, sizeof(wbuf));
-        if(fgets(wbuf,sizeof wbuf,fs) == NULL) {
-            f = loaddefault();
-            error = 1;
-            return(f);
-        }
-        sscanf(wbuf,"%f,%f\n",&f.ftime[i],&f.tdata[i]);
+        fgets(wbuf,sizeof wbuf,fs);
+        sscanf(wbuf,"%f,%f\n",&ftime[i],&tdata[i]);
     }
 
     fclose(fs);
 
-    f.maxtime = 0.0f;
-    f.maxdata = 0.0f;
-    float averaget = 0.0f;
-    float tempor = 0.0f;
-    for(i=0; i<f.data_length; i++) {
-        if(f.ftime[i] > f.maxtime) f.maxtime = f.ftime[i];
-        if(f.tdata[i] > f.maxdata) f.maxdata = f.tdata[i];  //used to normalize so feedback is more predictable
-        if(i>0) {
-            tempor = f.ftime[i] - f.ftime[i-1];
-            if(tempor>averaget) averaget = tempor;
-        }
+    maxtime = 0.0f;
+    maxdata = 0.0f;
+//    float averaget = 0.0f;
+//    float tempor = 0.0f;
+    for(i=0; i<data_length; i++) {
+        if(ftime[i] > maxtime) maxtime = ftime[i];
+        if(tdata[i] > maxdata) maxdata = tdata[i];  //used to normalize so feedback is more predictable
+//        if(i>0) {
+//            tempor = ftime[i] - ftime[i-1];
+//            if(tempor>averaget) averaget = tempor;
+//        }
     }
 
-    return f;
-};
-
-void
-Reverbtron::applyfile(RvbFile file)
-{
-    File = file;
+    cleanup();
     convert_time();
+    return(1);
 };
-
-RvbFile Reverbtron::loaddefault()
+void Reverbtron::loaddefault()
 {
-	RvbFile f;
-	strcpy(f.Filename,"default");
-    f.data_length = Llength = 2;
-    f.ftime[0] = 1.0f;
-    f.ftime[1] = 1.25f;
-    f.tdata[0] = 0.75f;
-    f.tdata[1] = 0.5f;
-    f.maxtime = 1.25f;
-    f.maxdata = 0.75f;
-    return f;
+    data_length = Llength = 2;
+    ftime[0] = 1.0f;
+    ftime[1] = 1.25f;
+    tdata[0] = 0.75f;
+    tdata[1] = 0.5f;
+    maxtime = 1.25f;
+    maxdata = 0.75f;
+    cleanup();
+    convert_time();
 }
 
 void Reverbtron::convert_time()
@@ -492,19 +389,19 @@ void Reverbtron::convert_time()
     float incr = 0.0f;
     float findex;
     float tmpstretch = 1.0f;
-    float normal = 0.9999f/File.maxdata;
+    float normal = 0.9999f/maxdata;
 
     memset(data, 0, sizeof(float)*2000);
     memset(time, 0, sizeof(int)*2000);
     memset(rndtime, 0, sizeof(int)*2000);
 
-    if(Llength>=File.data_length) Llength = File.data_length;
+    if(Llength>=data_length) Llength = data_length;
     if(Llength==0) Llength=400;
-    incr = ((float) Llength)/((float) File.data_length);
+    incr = ((float) Llength)/((float) data_length);
 
 
     if(fstretch>0.0) {
-        tmpstretch = 1.0f + fstretch * (convlength/File.maxtime);
+        tmpstretch = 1.0f + fstretch * (convlength/maxtime);
     } else {
         tmpstretch = 1.0f + 0.95f*fstretch;
     }
@@ -513,18 +410,19 @@ void Reverbtron::convert_time()
     skip = 0.0f;
     index = 0;
 
-    if(File.data_length>Llength) {
-        for(i=0; i<File.data_length; i++) {
+
+    if(data_length>Llength) {
+        for(i=0; i<data_length; i++) {
             skip += incr;
             findex = (float)index;
             if( findex<skip) {
                 if(index<Llength) {
-                    if( (tmpstretch*(idelay + File.ftime[i] )) > 9.9f ) {
-                        File.ftime[i] = 0.0f;//TODO: why are we destroying the file data?
+                    if( (tmpstretch*(idelay + ftime[i] )) > 9.9f ) {
+                        ftime[i] = 0.0f;
                         data[i] = 0.0f;
                     }
-                    time[index]=lrintf(tmpstretch*(idelay + File.ftime[i])*nfSAMPLE_RATE);  //Add initial delay to all the samples
-                    data[index]=normal*File.tdata[i];
+                    time[index]=lrintf(tmpstretch*(idelay + ftime[i])*nfSAMPLE_RATE);  //Add initial delay to all the samples
+                    data[index]=normal*tdata[i];
                     index++;
                 }
             }
@@ -532,11 +430,11 @@ void Reverbtron::convert_time()
         Llength = index;
     } //endif
     else {
-        for(i=0; i<File.data_length; i++) {
+        for(i=0; i<data_length; i++) {
 
-            if( (idelay + File.ftime[i] ) > 5.9f ) File.ftime[i] = 5.9f;
-            time[i]=lrintf(tmpstretch*(idelay + File.ftime[i])*nfSAMPLE_RATE);  //Add initial delay to all the samples
-            data[i]=normal*File.tdata[i];
+            if( (idelay + ftime[i] ) > 5.9f ) ftime[i] = 5.9f;
+            time[i]=lrintf(tmpstretch*(idelay + ftime[i])*nfSAMPLE_RATE);  //Add initial delay to all the samples
+            data[i]=normal*tdata[i];
 
         };
         Llength = i;
@@ -545,8 +443,8 @@ void Reverbtron::convert_time()
 //generate an approximated randomized hrtf for diffusing reflections:
     int tmptime = 0;
     int hrtf_tmp = Pdiff;
-    if(hrtf_tmp>File.data_length) hrtf_tmp = File.data_length -1;
-    if(hlength>File.data_length) hlength =  File.data_length -1;
+    if(hrtf_tmp>data_length) hrtf_tmp = data_length -1;
+    if(hlength>data_length) hlength =  data_length -1;
     for (i =0; i<hrtf_tmp; i++) {
         tmptime = (int) (RND * hrtf_size);
         rndtime[i] = tmptime;  //randomly jumble the head of the transfer function
@@ -569,7 +467,6 @@ void Reverbtron::convert_time()
     if(roomsize>imax) roomsize = imax;
     setfb(Pfb);
 
-    cleanup();
 };
 
 
@@ -610,7 +507,7 @@ Reverbtron::setfb(int value)
 
 
 void
-Reverbtron::adjust(int DS, double fSAMPLE_RATE)
+Reverbtron::adjust(int DS)
 {
 
     DS_state=DS;
@@ -619,68 +516,66 @@ Reverbtron::adjust(int DS, double fSAMPLE_RATE)
     switch(DS) {
 
     case 0:
-        nRATIO = 1;
-        nSAMPLE_RATE = fSAMPLE_RATE;
+        nPERIOD = PERIOD;
+        nSAMPLE_RATE = SAMPLE_RATE;
         nfSAMPLE_RATE = fSAMPLE_RATE;
         break;
 
     case 1:
-        nRATIO = 96000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*96000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 96000;
         nfSAMPLE_RATE = 96000.0f;
         break;
 
 
     case 2:
-        nRATIO = 48000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*48000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 48000;
         nfSAMPLE_RATE = 48000.0f;
         break;
 
     case 3:
-        nRATIO = 44100.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*44100.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 44100;
         nfSAMPLE_RATE = 44100.0f;
         break;
 
     case 4:
-        nRATIO = 32000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*32000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 32000;
         nfSAMPLE_RATE = 32000.0f;
         break;
 
     case 5:
-        nRATIO = 22050.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*22050.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 22050;
         nfSAMPLE_RATE = 22050.0f;
         break;
 
     case 6:
-        nRATIO = 16000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*16000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 16000;
         nfSAMPLE_RATE = 16000.0f;
         break;
 
     case 7:
-        nRATIO = 12000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*12000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 12000;
         nfSAMPLE_RATE = 12000.0f;
         break;
 
     case 8:
-        nRATIO = 8000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*8000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 8000;
         nfSAMPLE_RATE = 8000.0f;
         break;
 
     case 9:
-        nRATIO = 4000.0/fSAMPLE_RATE;
+        nPERIOD = lrintf(fPERIOD*4000.0f/fSAMPLE_RATE);
         nSAMPLE_RATE = 4000;
         nfSAMPLE_RATE = 4000.0f;
         break;
     }
-    
-    nPERIOD = lrintf((float)PERIOD*nRATIO);
     u_up= (double)nPERIOD / (double)PERIOD;
     u_down= (double)PERIOD / (double)nPERIOD;
 }

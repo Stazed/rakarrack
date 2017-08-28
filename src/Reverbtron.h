@@ -27,16 +27,6 @@
 #include "AnalogFilter.h"
 #include "Resample.h"
 
-class RvbFile
-{
-public:
-	char Filename[128];
-	float tdata[2000];
-	float ftime[2000];
-	int data_length;
-	float maxtime;
-	float maxdata;
-};
 
 class Reverbtron
 {
@@ -52,15 +42,13 @@ public:
     void initialize();
     void clear_initialize();
     int setfile (int value);
-    void adjust(int DS, double sample_rate);
-    RvbFile loadfile(char* filename);
-    void applyfile(RvbFile file);
+    void adjust(int DS);
 
     int Ppreset;
     float outvolume;
 
     char Filename[128];
-    RvbFile File;
+
 
 private:
 
@@ -70,7 +58,7 @@ private:
     void setlpf (int Plpf);
     void setfb(int value);
     void convert_time();
-    RvbFile loaddefault();
+    void loaddefault();
 
 
     //Parametrii
@@ -97,18 +85,18 @@ private:
     int offset;
     int hoffset;
     int maxx_size;
-    //int data_length;
-    int error;// flag if error when loading file
+    int data_length;
+    int avgtime;
     int Llength; //Plength but limited
-//    int avgtime;
     int hrtf_size;
     int hlength;
     int DS_state;
     uint32_t PERIOD;
     int nPERIOD;
+    float fPERIOD;
     int nSAMPLE_RATE;
     double fSAMPLE_RATE;
-    float nRATIO;
+    unsigned int SAMPLE_RATE;
 
 
     int *time, *rndtime;
@@ -116,11 +104,9 @@ private:
     double u_down;
     float nfSAMPLE_RATE;
 
-    //float fstretch, idelay, ffade, maxtime, maxdata, decay, diffusion;
-    float fstretch, idelay, ffade, decay, diffusion;
+    float fstretch, idelay, ffade, maxtime, maxdata, decay, diffusion;
     float lpanning, rpanning, hidamp, alpha_hidamp, convlength, oldl;
-    //float *data, *lxn, *imdelay, *ftime, *tdata, *rnddata, *hrtf;
-    float *data, *lxn, *imdelay, *rnddata, *hrtf;
+    float *data, *lxn, *imdelay, *ftime, *tdata, *rnddata, *hrtf;
     float *templ, *tempr;
     float level,fb, feedback,levpanl,levpanr;
     float roomsize;
