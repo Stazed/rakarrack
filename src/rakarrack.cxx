@@ -10916,23 +10916,23 @@ switch(rkr->RCOpti)
     case 0:
     	rkr->RecNote->setlpf(5500);
     	rkr->RecNote->sethpf(80);
-    	rkr->RingRecNote->setlpf(5500);
-    	rkr->RingRecNote->sethpf(80);
+	rkr->RingRecNote->setlpf(5500);
+	rkr->RingRecNote->sethpf(80);
     	break;
     	
 
     case 1:
     	rkr->RecNote->setlpf(4500);
     	rkr->RecNote->sethpf(80);
-    	rkr->RingRecNote->setlpf(4500);
-    	rkr->RingRecNote->sethpf(80);
+	rkr->RingRecNote->setlpf(4500);
+	rkr->RingRecNote->sethpf(80);
     	break;
     	
     case 2:
     	rkr->RecNote->setlpf(3000);
     	rkr->RecNote->sethpf(300);
-    	rkr->RingRecNote->setlpf(3000);
-    	rkr->RingRecNote->sethpf(300);
+	rkr->RingRecNote->setlpf(3000);
+	rkr->RingRecNote->sethpf(300);
     	break;
 
 };
@@ -24943,7 +24943,7 @@ void RKRGUI::MiraConfig() {
   Wave_Down_Qua->value(rkr->Wave_down_q);
   Calibration->value(rkr->aFreq);
   RTrigger->value(rkr->RecNote->trigfact);
-//  RTrigger->value(rkr->RingRecNote->trigfact);
+  //  RTrigger->value(rkr->RingRecNote->trigfact); // not needed since is the same
   RC_Opti->value(rkr->RCOpti);
   
   

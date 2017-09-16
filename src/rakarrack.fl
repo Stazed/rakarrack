@@ -7327,7 +7327,7 @@ update_looper();}
         }
       }
       Fl_Group RYANWAH {
-        user_data 1 open
+        user_data 1
         xywh {479 211 158 184} box UP_BOX color 0 selection_color 0 labelfont 1 align 112
       } {
         Fl_Light_Button ryanwah_activar {
@@ -7375,7 +7375,7 @@ ryanwah_rng->value(rkr->efx_RyanWah->getpar(14));
 ryanwah_minfreq->value(rkr->efx_RyanWah->getpar(15));
 ryanwah_res->value(rkr->efx_RyanWah->getpar(16));
 o->value(rkr->efx_RyanWah->getpar(18));
-o->redraw();} selected
+o->redraw();}
           xywh {557 216 76 18} down_box BORDER_BOX selection_color 0 labelsize 10 labelcolor 7 when 6 textsize 10 textcolor 7
         } {
           MenuItem {} {
@@ -11397,14 +11397,14 @@ Order->do_callback();}
     }
     Fl_Window Settings {
       callback {save_stat(3);
-Settings->hide();}
+Settings->hide();} open
       xywh {1388 103 640 528} type Double color 4 hide size_range {640 528 0 0}
     } {
       Fl_Box Fondo2 {
         xywh {1 1 640 528}
       }
       Fl_Tabs STabs {
-        user_data 1
+        user_data 1 open
         xywh {0 0 636 535}
       } {
         Fl_Group Look {
@@ -11817,7 +11817,7 @@ Show_Next_Time();}
 
 }
 
-Show_Next_Time();}
+Show_Next_Time();} open
             xywh {132 196 47 18} down_box BORDER_BOX labelsize 10 labelcolor 7 textsize 10 textcolor 7
           } {
             MenuItem {} {
@@ -11854,13 +11854,15 @@ Show_Next_Time();}
           Fl_Counter Calibration {
             label {Tuner Calibration A4 }
             callback {rkr->aFreq=o->value();
-rkr->RecNote->update_freqs(rkr->aFreq);}
+rkr->RecNote->update_freqs(rkr->aFreq);
+rkr->RingRecNote->update_freqs(rkr->aFreq);}
             xywh {120 249 116 21} labelsize 10 labelcolor 7 align 4 minimum 420 maximum 460 value 440 textsize 10
           }
           Fl_Counter RTrigger {
             label {Recognize Note Trigger}
             callback {rkr->rtrig = o->value();
-rkr->RecNote->trigfact = o->value();}
+rkr->RecNote->trigfact = o->value();
+rkr->RingRecNote->trigfact = o->value();}
             xywh {367 249 116 21} labelsize 10 labelcolor 7 align 4 minimum 0.01 maximum 0.99 step 0.01 value 0.6 textsize 10
             code0 {o->lstep(0.1);}
           }
@@ -11875,20 +11877,26 @@ switch(rkr->RCOpti)
     case 0:
     	rkr->RecNote->setlpf(5500);
     	rkr->RecNote->sethpf(80);
+	rkr->RingRecNote->setlpf(5500);
+	rkr->RingRecNote->sethpf(80);
     	break;
     	
 
     case 1:
     	rkr->RecNote->setlpf(4500);
     	rkr->RecNote->sethpf(80);
+	rkr->RingRecNote->setlpf(4500);
+	rkr->RingRecNote->sethpf(80);
     	break;
     	
     case 2:
     	rkr->RecNote->setlpf(3000);
     	rkr->RecNote->sethpf(300);
+	rkr->RingRecNote->setlpf(3000);
+	rkr->RingRecNote->sethpf(300);
     	break;
 
-}}
+}} open
             xywh {160 277 72 18} down_box BORDER_BOX labelsize 10 labelcolor 7 textsize 10 textcolor 7
           } {
             MenuItem {} {
@@ -14878,6 +14886,7 @@ Wave_Up_Qua->value(rkr->Wave_up_q);
 Wave_Down_Qua->value(rkr->Wave_down_q);
 Calibration->value(rkr->aFreq);
 RTrigger->value(rkr->RecNote->trigfact);
+//  RTrigger->value(rkr->RingRecNote->trigfact); // not needed since is the same
 RC_Opti->value(rkr->RCOpti);
 
 
@@ -15049,7 +15058,8 @@ for(int j=0; j<menu_Har_Downsample->size(); j++)
 
 }
 
-Font_Bro->value(rkr->font+1);} {}
+Font_Bro->value(rkr->font+1);} {selected
+    }
   }
   Function {BankWin_Label(char *filename)} {} {
     code {char tmp[256];
