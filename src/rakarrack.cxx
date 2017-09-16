@@ -10891,6 +10891,7 @@ void RKRGUI::cb_DB6B(Fl_Check_Button* o, void* v) {
 void RKRGUI::cb_Calibration_i(Fl_Counter* o, void*) {
   rkr->aFreq=o->value();
 rkr->RecNote->update_freqs(rkr->aFreq);
+rkr->RingRecNote->update_freqs(rkr->aFreq);
 }
 void RKRGUI::cb_Calibration(Fl_Counter* o, void* v) {
   ((RKRGUI*)(o->parent()->parent()->parent()->user_data()))->cb_Calibration_i(o,v);
@@ -10899,6 +10900,7 @@ void RKRGUI::cb_Calibration(Fl_Counter* o, void* v) {
 void RKRGUI::cb_RTrigger_i(Fl_Counter* o, void*) {
   rkr->rtrig = o->value();
 rkr->RecNote->trigfact = o->value();
+rkr->RingRecNote->trigfact = o->value();
 }
 void RKRGUI::cb_RTrigger(Fl_Counter* o, void* v) {
   ((RKRGUI*)(o->parent()->parent()->parent()->user_data()))->cb_RTrigger_i(o,v);
@@ -10914,17 +10916,23 @@ switch(rkr->RCOpti)
     case 0:
     	rkr->RecNote->setlpf(5500);
     	rkr->RecNote->sethpf(80);
+    	rkr->RingRecNote->setlpf(5500);
+    	rkr->RingRecNote->sethpf(80);
     	break;
     	
 
     case 1:
     	rkr->RecNote->setlpf(4500);
     	rkr->RecNote->sethpf(80);
+    	rkr->RingRecNote->setlpf(4500);
+    	rkr->RingRecNote->sethpf(80);
     	break;
     	
     case 2:
     	rkr->RecNote->setlpf(3000);
     	rkr->RecNote->sethpf(300);
+    	rkr->RingRecNote->setlpf(3000);
+    	rkr->RingRecNote->sethpf(300);
     	break;
 
 };
@@ -24935,6 +24943,7 @@ void RKRGUI::MiraConfig() {
   Wave_Down_Qua->value(rkr->Wave_down_q);
   Calibration->value(rkr->aFreq);
   RTrigger->value(rkr->RecNote->trigfact);
+//  RTrigger->value(rkr->RingRecNote->trigfact);
   RC_Opti->value(rkr->RCOpti);
   
   

@@ -306,6 +306,7 @@ RKR::RKR ()
     efx_Tuner = new Tuner (fSample_rate);
     efx_MIDIConverter = new MIDIConverter(jackcliname, this, fSample_rate, period);
     RecNote = new Recognize (rtrig, aFreq, fSample_rate, period);
+    RingRecNote = new Recognize (rtrig, aFreq, fSample_rate, period);
     RC = new RecChord ();
 
 
@@ -894,6 +895,7 @@ RKR::init_rkr ()
     }
     RC->cleanup ();
     RecNote->reconota = -1;
+    RingRecNote->reconota = -1;
 
 }
 
@@ -1434,12 +1436,11 @@ RKR::Alg (float *origl, float *origr, void *)
 
 
         if((Ring_Bypass) && (efx_Ring->Pafreq)) {
-            if(!reco) RecNote->schmittFloat (efxoutl, efxoutr);
-            reco=1;
-            if ((RecNote->reconota != -1) && (RecNote->reconota != RecNote->last)) {
-                if(RecNote->afreq > 0.0) {
-                    efx_Ring->Pfreq=lrintf(RecNote->lafreq);
-                    ponlast = 1;
+            RingRecNote->schmittFloat (efxoutl, efxoutr);
+            if ((RingRecNote->reconota != -1) && (RingRecNote->reconota != RingRecNote->last)) {
+                if(RingRecNote->afreq > 0.0) {
+                    efx_Ring->Pfreq = lrintf(RingRecNote->lafreq);
+                    RingRecNote->last = RingRecNote->reconota;
                 }
             }
         }

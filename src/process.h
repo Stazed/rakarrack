@@ -161,6 +161,7 @@ public:
     class beattracker *beat;
 
     class Recognize *RecNote;
+    class Recognize *RingRecNote;
     class RecChord *RC;
     class Compressor *efx_FLimiter;
     class Valve *efx_Valve;
