@@ -146,8 +146,26 @@
                 lv2:portProperty lv2:integer ;
                 lv2:portProperty lv2:toggled ;
         ], [
-                a lv2:OutputPort, lv2:ControlPort ;
+                a lv2:InputPort, lv2:ControlPort ;
                 lv2:index 14 ;
+                lv2:symbol "LOWPASS" ;
+                lv2:name "Low Pass Filter" ;
+                lv2:default 3000 ;
+                lv2:minimum 20 ;
+                lv2:maximum 26000 ;
+                lv2:portProperty lv2:integer ;
+        ], [
+                a lv2:InputPort, lv2:ControlPort ;
+                lv2:index 15 ;
+                lv2:symbol "HIGHPASS" ;
+                lv2:name "High Pass Filter" ;
+                lv2:default 300 ;
+                lv2:minimum 20 ;
+                lv2:maximum 20000 ;
+                lv2:portProperty lv2:integer ;
+        ], [
+                a lv2:OutputPort, lv2:ControlPort ;
+                lv2:index 16 ;
                 lv2:symbol "NOTE" ;
                 lv2:name "Note Register" ;
                 lv2:default 0 ;

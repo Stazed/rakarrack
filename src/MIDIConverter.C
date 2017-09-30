@@ -60,12 +60,18 @@ MIDIConverter::MIDIConverter (char *jname, RKR *_rkr, double sample_rate, uint32
     fftInit (32);     // == latency
 
 #ifdef LV2RUN
+    dSAMPLE_RATE = sample_rate;
+    Plpf = 3000;
+    Phpf = 300;
     VAL_SUM = -50.0f;
     old_il_sum = -50.0f;
     old_ir_sum = -50.0f;
     val_il_sum = -50.0;
     val_ir_sum = -50.0;
     update_freqs(440.0f);
+    initialize();
+    setlpf(3000);       // Voice
+    sethpf(300);        // Voice
 #else
     // Open Alsa Seq
     int err = snd_seq_open (&port, "default", SND_SEQ_OPEN_OUTPUT, 0);
@@ -92,7 +98,9 @@ MIDIConverter::~MIDIConverter ()
 {
     schmittFree();
     fftFree();
-#ifndef LV2RUN
+#ifdef LV2RUN
+    clear_initialize();
+#else
     snd_seq_close (port);
 #endif // LV2RUN
 }
@@ -150,11 +158,24 @@ MIDIConverter::cleanup()
     // nothing
 }
 
+#ifdef LV2RUN
 void
 MIDIConverter::lv2_update_params(uint32_t period)
 {
-    PERIOD = period;
+    if(period > PERIOD) // only re-initialize if period > intermediate_bufsize of declaration
+    {
+        PERIOD = period;
+        clear_initialize();
+        initialize();
+        setlpf(3000);       // Voice
+        sethpf(300);        // Voice
+    }
+    else
+    {
+        PERIOD = period;
+    }
 }
+#endif // LV2RUN
 
 void
 MIDIConverter::displayFrequency (float ffreq, float val_sum, float *freqs, float *lfreqs)
@@ -295,7 +316,12 @@ void
 MIDIConverter::schmittFloat (float * efxoutl, float * efxoutr, float val_sum, float *freqs, float *lfreqs)
 {
     unsigned int i;
-
+#ifdef LV2RUN
+    lpfl->filterout (efxoutl, PERIOD);
+    hpfl->filterout (efxoutl, PERIOD);
+    lpfr->filterout (efxoutr, PERIOD);
+    hpfr->filterout (efxoutr, PERIOD);
+#endif // LV2RUN
     signed short int buf[PERIOD];
     for (i = 0; i < PERIOD; i++) {
         buf[i] =
@@ -411,6 +437,13 @@ MIDIConverter::fftMeasure (int overlap, float *indata, float val_sum, float *fre
 void
 MIDIConverter::fftFloat (float *efxoutl, float *efxoutr, float val_sum, float *freqs, float *lfreqs)
 {
+#ifdef LV2RUN
+    lpfl->filterout (efxoutl, PERIOD);
+    hpfl->filterout (efxoutl, PERIOD);
+    lpfr->filterout (efxoutr, PERIOD);
+    hpfr->filterout (efxoutr, PERIOD);
+#endif // LV2RUN
+    
     signed short int buf[PERIOD];
     for (unsigned int i = 0; i < PERIOD; i++) {
         buf[i] =
@@ -621,6 +654,16 @@ MIDIConverter::changepar (int npar, int value)
         Ppanic = value;
         panic();
         break;
+#ifdef LV2RUN
+    case 7:
+        Plpf = value;
+        setlpf(value);
+        break;
+    case 8:
+        Phpf = value;
+        sethpf(value);
+        break;
+#endif // LV2RUN
     };
 };
 
@@ -649,6 +692,14 @@ MIDIConverter::getpar (int npar)
     case 6:
         return (Ppanic);
         break;
+#ifdef LV2RUN
+    case 7:
+        return (Plpf);
+        break;
+    case 8:
+        return (Phpf);
+        break;
+#endif // LV2RUN
     default:
         return (0);
     };
@@ -670,4 +721,42 @@ MIDIConverter::update_freqs(float val) // val = 440.0f - user default settings
         LFREQS[i] = LFREQS[i - 1] + LOG_D_NOTE;
     }
 }
+
+void MIDIConverter::initialize()
+{
+    interpbuf = new float[PERIOD];
+    lpfl = new AnalogFilter (2, 3000, 1, 0, dSAMPLE_RATE, interpbuf);
+    lpfr = new AnalogFilter (2, 3000, 1, 0, dSAMPLE_RATE, interpbuf);
+    hpfl = new AnalogFilter (3, 300, 1, 0, dSAMPLE_RATE, interpbuf);
+    hpfr = new AnalogFilter (3, 300, 1, 0, dSAMPLE_RATE, interpbuf);
+}
+
+void MIDIConverter::clear_initialize()
+{
+    delete lpfl;
+    delete lpfr;
+    delete hpfl;
+    delete hpfr;
+    delete[] interpbuf;
+}
+
+void
+MIDIConverter::setlpf (int value)
+{
+    float fr = (float)value;
+    lpfl->setfreq (fr);
+    lpfr->setfreq (fr);
+};
+
+void
+MIDIConverter::sethpf (int value)
+{
+    float fr = (float)value;
+
+    hpfl->setfreq (fr);
+    hpfr->setfreq (fr);
+
+
+}
+
 #endif // LV2RUN

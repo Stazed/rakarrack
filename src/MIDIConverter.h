@@ -70,6 +70,10 @@ public:
 
 #ifdef LV2RUN
     void update_freqs(float val);
+    void initialize();
+    void clear_initialize();
+    void setlpf (int value);
+    void sethpf (int value);
 #endif // LV2RUN
     
     int channel;
@@ -128,6 +132,11 @@ private:
     float old_ir_sum; // -50.0
     float val_il_sum;
     float val_ir_sum;
+    AnalogFilter *lpfl, *lpfr, *hpfl, *hpfr;
+    float* interpbuf; //buffer for filters
+    double dSAMPLE_RATE;
+    int Plpf;
+    int Phpf;
 #endif // LV2RUN
     
     //Parametrii

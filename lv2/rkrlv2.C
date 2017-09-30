@@ -11,7 +11,7 @@ enum other_ports
     HARMONIZER_MIDI,//unassigned right now
     VOCODER_AUX_IN = 7,
     VOCODER_VU_LEVEL = 8,
-    MIDIC_NOTE_REGISTER = 7
+    MIDIC_NOTE_REGISTER = 9
 };
 
 // A few helper functions taken from the RKR object
@@ -4510,7 +4510,7 @@ LV2_Handle init_midiclv2(const LV2_Descriptor *descriptor,double sample_freq, co
 {
     RKRLV2* plug = (RKRLV2*)malloc(sizeof(RKRLV2));
 
-    plug->nparams = 7;
+    plug->nparams = 9;
     plug->effectindex = IMIDIC;
     plug->prev_bypass = 1;
 
