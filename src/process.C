@@ -163,7 +163,9 @@ RKR::RKR()
     rakarrack.get(PrefNom("StereoHarm Quality"), SteQual, 4);
 
     rakarrack.get(PrefNom("Auto Connect Jack"), aconnect_JA, 1);
-    rakarrack.get(PrefNom("Auto Connect Jack In"), aconnect_JIA, 1);
+    
+    /* Do not auto connect input by default, causes feedback loop on new install = 0 */
+    rakarrack.get(PrefNom("Auto Connect Jack In"), aconnect_JIA, 0);
 
     rakarrack.get(PrefNom("Auto Connect Num"), cuan_jack, 2);
     rakarrack.get(PrefNom("Auto Connect In Num"), cuan_ijack, 1);
