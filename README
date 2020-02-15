@@ -1,8 +1,10 @@
 
-As of February 14, 2020 - This repository is not ready for public consumption.
-DO NOT USE THIS YET!!!!!
-Many backwards incompatible changes to come.
-This notice will be removed when updates are completed.
+Please note, there were three inadvertent commits to master on 2/14/20 that were reverted on 2/15/20.
+The commits were intended for another repository used for conversion purposes to rakarrack-plus.
+The master branch on this repository should be functional now.
+There are no backwards incompatible changes planned for this repository.
+
+Apologies for any inconvenience....
 
 
 
