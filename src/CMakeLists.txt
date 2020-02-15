@@ -1,6 +1,6 @@
-#CMake file for Rakarrack-plus
+#CMake file for Rakarrack
 
-project (rakarrack-plus)
+project (rakarrack)
 
 if (EnableJackSessionSupport)
     add_definitions(-DJACK_SESSION=1)
@@ -160,10 +160,10 @@ set(ExternLibraries
     m
 )
 
-add_executable (rakarrack-plus ${ProgSources} main.C)
+add_executable (rakarrack ${ProgSources} main.C)
 
 target_include_directories (
-    rakarrack-plus PRIVATE
+    rakarrack PRIVATE
     ${FLTK_INCLUDE_DIRS}
     ${ALSA_INCLUDE_DIRS}
     ${JACK_INCLUDE_DIRS}
@@ -181,11 +181,11 @@ target_include_directories (
     "${CMAKE_CURRENT_BINARY_DIR}/UI"
 )
 
-target_link_libraries (rakarrack-plus ${ExternLibraries})
+target_link_libraries (rakarrack ${ExternLibraries})
 
 set_source_files_properties(MIDIConverter.C PROPERTIES COMPILE_FLAGS -std=c++98)
-target_sources(rakarrack-plus PRIVATE
+target_sources(rakarrack PRIVATE
   MIDIConverter.C
 )
 
-install (TARGETS rakarrack-plus RUNTIME DESTINATION bin)
+install (TARGETS rakarrack RUNTIME DESTINATION bin)

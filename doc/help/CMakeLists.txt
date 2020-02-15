@@ -16,8 +16,8 @@ install (FILES help.html
     presetlist.html
     midiic.html
     license.html
-    DESTINATION share/doc/rakarrack-plus/html)
+    DESTINATION share/doc/rakarrack/html)
 
 
 install (DIRECTORY imagenes/
-    DESTINATION share/doc/rakarrack-plus/html/imagenes)
+    DESTINATION share/doc/rakarrack/html/imagenes)
