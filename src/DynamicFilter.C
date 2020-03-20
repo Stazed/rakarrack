@@ -358,7 +358,11 @@ DynamicFilter::changepar(int npar, int value)
             filterpars->Pvowels[1].formants[1].q = 64;
             break;
         }
-        reinitfilter();
+        /* We do not want to re-initialize the filter here because it deletes the filter. 
+         * If it hits just at the wrong moment, then out() will try to use the just deleted filter
+         * and crash. So we set changed and check and delete in out() at - if (filterpars->changed).
+         */
+        filterpars->changed = true;
     }
     }
 }
